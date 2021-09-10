@@ -1,0 +1,13 @@
+.Name-prompt-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    background-color: yellow;
+    width: 95%;
+    height: 95%;
+}
+
+.Name-prompt-container > div {
+    margin: 10px;
+}

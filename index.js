@@ -29,9 +29,9 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
     console.log("A user connected.");
     clientId = clientCount;
-    clientList.push({ 
+    newClient = { 
         id: clientId, 
-        name: `User${clientId}`,
+        name: null,
         socket: socket,
         controls_status: { 
             right: false,
@@ -39,14 +39,21 @@ io.on('connection', (socket) => {
             up: false,
             down: false,
         },
-        avatar: new ava.Avatar(0, 0),
+        avatar: null,
+    };
+    clientList.push(newClient);
+    sendAllLocations(newClient, clientList);
+
+    socket.on('connect_avatar', (name) => {
+        newClient.name = name;
+        newClient.avatar = new ava.Avatar(250, 100);
     });
 
     socket.on('controls_change', (id, control, newState) => {
-        console.log(`${control}: ${newState}`);
         let target_client_idx = clientList.findIndex((client) => client.id === id);
         if (target_client_idx < 0) { return; }
-        let target_client = clientList[target_client_idx]
+        let target_client = clientList[target_client_idx];
+        if (!target_client.avatar) { return; }
 
         target_client.controls_status[control] = (newState == 'down');
     });
@@ -62,6 +69,13 @@ io.on('connection', (socket) => {
     })
     clientCount ++;
 });
+
+function sendAllLocations(targetClient, allClients) {
+    for (let otherClient of allClients) {
+        if (!otherClient.avatar) { continue; }
+        targetClient.socket.emit('avatar_moved', otherClient.id, otherClient.name, otherClient.avatar.x, otherClient.avatar.y);
+    }
+}
 
 function gameLoop() {    
     for (let client of clientList) {
@@ -79,9 +93,7 @@ function gameLoop() {
         }
     }
     for (let client of clientList) {
-        for (let otherClient of clientList) {
-            client.socket.emit('avatar_moved', otherClient.id, otherClient.avatar.x, otherClient.avatar.y);
-        }
+        sendAllLocations(client, clientList);
     }
 }
 
