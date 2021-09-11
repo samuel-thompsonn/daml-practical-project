@@ -1,57 +1,73 @@
-import logo from './logo.svg';
 import './App.css';
-import { useEffect, useState } from 'react';
-import Sketch from 'react-p5';
+import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 import GameRoom from './components/visualizer/GameRoom';
 import NamePrompt from './components/NamePrompt';
-
-const playerData = {
-  
-};
-
-var keyPressVals = {
-  right: false,
-  left: false,
-  up: false,
-  down: false,
-}
-
-var keyAssociations = {
-  d: 'right',
-  a: 'left',
-  w: 'up',
-  s: 'down'
-}
-
-var socket;
-var userId;
+import { keyMappings } from './controls';
 
 function App() {
 
-  const [name, setName] = useState("");
+  const initSocket = () => {
+    console.log("initializing socket!");
+    return io('http://localhost:3001');
+  }
 
-  const handleKey = (key, state='down') => {
-    if (!keyAssociations[key]) { return; }
+  const [name, setName] = useState("");
+  const [keyPressVals] = useState({
+    right: false,
+    left: false,
+    up: false,
+    down: false,
+  });
+  const [playerData] = useState({ });
+  const [userId, setUserId] = useState();
+  const socket = useRef(null);
+
+  const handleKey = (key, state='down', userId) => {
+    key = key.toLowerCase();
+    if (!keyMappings[key]) { return; }
     let newPressVals = { ...keyPressVals };
-    newPressVals[keyAssociations[key]] = (state == 'down');
-    if (socket) { 
-      socket.emit('controls_change', userId, keyAssociations[key], state); 
+    newPressVals[keyMappings[key]] = (state == 'down');
+    if (!userId) {
+      console.log("No user ID!");
+      console.log(userId);
+    }
+    if (socket.current && userId) { 
+      socket.current.emit('controls_change', userId, keyMappings[key], state); 
     }
   }
 
-  function initSocketIo() {
-    const newSocket = io('http://localhost:3001');
-    socket = newSocket;
-    
+  useEffect(() => {
+    console.log("User ID set has been finalized as:");
+    console.log(userId);
+    const downListener = (e) => handleKey(e.key, 'down', userId);
+    const upListener = (e) => handleKey(e.key, 'up', userId);
+    document.addEventListener('keydown', downListener);
+    document.addEventListener('keyup', upListener);
+    return () => {
+      document.removeEventListener('keydown', downListener);
+      document.removeEventListener('keyup', upListener);
+    }
+  }, [userId]);
+
+  function initSocketIo(newSocket) {    
     newSocket.on('accepted_connection', (id) => {
-      userId = id;
-      console.log(id);
+      setUserId(id);
+      console.log(`ID: ${id}`);
     });
 
     newSocket.on('avatar_moved', (id, name, newX, newY) => {
       if (!playerData[id]) {
-        playerData[id] = { location: { } };
+        playerData[id] = { 
+          location: { },
+          oldLocations: [],
+        };
+      }
+      else {
+        playerData[id].oldLocations.push({...playerData[id].location});
+        if (playerData[id].oldLocations.length > 50) {
+          playerData[id].oldLocations.splice(0,1);
+        }
       }
       playerData[id].location.x = newX;
       playerData[id].location.y = newY;
@@ -66,25 +82,24 @@ function App() {
   }
 
   useEffect(() => {
-    document.addEventListener('keydown', (e) => handleKey(e.key, 'down'));
-    document.addEventListener('keyup', (e) => handleKey(e.key, 'up'));
+    socket.current = initSocket();
+    initSocketIo(socket.current);
 
-    const closeCallback = initSocketIo();
-    return closeCallback;
   }, []);
 
   const submitName = () => {
-    socket.emit('connect_avatar', name);
+    socket.current.emit('connect_avatar', name);
   }
 
   return (
     <div className="App">
+      <p>{userId}</p>
       <div className='Name-prompt'>
         <NamePrompt
           name={name}
           onNameChange={setName}
           onSubmit={submitName}
-          disabled={playerData[userId]}
+          disabled={userId && playerData[userId] && true}
         />
       </div>
         <GameRoom gameData={playerData}/>

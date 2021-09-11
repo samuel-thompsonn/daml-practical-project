@@ -87,3 +87,8 @@ global parameters?
     - text size
     - avatar size for each avatar vis
     - room background color
+- Should GameSketch be a property of GameRoom, or should it be instantiated
+by GameRoom? 
+    - Well, instantiation should never be taken lightly, but it also shouldn't
+    be the job of the App which is accessing this p5 library thing. So perhaps
+    instantiation should be handled within GameRoom and not higher up.

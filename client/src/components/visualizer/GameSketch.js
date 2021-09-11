@@ -1,6 +1,12 @@
 import AvatarVis from './AvatarVis';
+import TrailAvatarVis from './TrailAvatarVis';
 
 export default class GameSketch {
+
+    constructor() {
+        this.avatarVis = new TrailAvatarVis(32, 25, 5);
+    }
+
     setup(p5, canvasParentRef) {
         // TODO: See if we can scale the canvas size
         // appropriately.
@@ -15,8 +21,7 @@ export default class GameSketch {
         for (let player of Object.values(gameData)) {
             let location = player.location;
             if (!location.x || !location.y) { continue; }
-            let vis = new AvatarVis(32, 25);
-            vis.drawAvatar(p5, player);
+            this.avatarVis.drawAvatar(p5, player);
         }
     }
 }
