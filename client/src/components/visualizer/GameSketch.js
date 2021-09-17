@@ -1,4 +1,3 @@
-import AvatarVis from './AvatarVis';
 import TrailAvatarVis from './TrailAvatarVis';
 
 const MARGIN_SIZE = 10;

@@ -1,5 +1,5 @@
 /**
- * Serves as an alternative to AvatarVis. Shows a trail of dots for
+ * Serves as an alternative to AvatarVis. Shows a line trail for
  * all previous locations of the avatar.
  */
 export default class TrailAvatarVis {
@@ -12,7 +12,6 @@ export default class TrailAvatarVis {
     drawAvatar(p5, { name, location: { x, y }, oldLocations, color }, offset, roomDims, {offsetWidth, offsetHeight}) {
         const xScale = offsetWidth / (roomDims.roomWidth + (2 * offset.xMargin));
         const yScale = offsetHeight / (roomDims.roomHeight + (2 * offset.yMargin));
-        // console.log(`x scale: ${xScale}, y scale: ${yScale}`);
         const ellipseDims = {
             x: (x + offset.xMargin) * xScale,
             y: (y + offset.yMargin) * yScale,

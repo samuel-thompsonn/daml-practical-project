@@ -5,7 +5,7 @@ import { Paper } from '@material-ui/core'
 
 export default function GameRoom({ roomColor, roomDims, gameData }) {
 
-    const [gameSketch, setGameSketch] = useState(new GameSketch());
+    const [gameSketch] = useState(new GameSketch());
     const canvasDivRef = useRef();
     
     return (

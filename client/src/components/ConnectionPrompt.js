@@ -1,5 +1,5 @@
 import './NamePrompt.css'
-import { TextField, Button, Paper } from '@material-ui/core'
+import { TextField, Button } from '@material-ui/core'
 import SimpleColorSelect from './SimpleColorSelect'
 
 export default function ConnectionPrompt({ 

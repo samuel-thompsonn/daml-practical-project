@@ -1,6 +1,5 @@
 import { Paper } from '@material-ui/core'
 import { useState } from 'react';
-import red from '@material-ui/core/Paper'
 
 export default function SimpleColorSelect({ options, value, onChange, disabled=false }) {
 
@@ -43,8 +42,9 @@ export default function SimpleColorSelect({ options, value, onChange, disabled=f
             }}
             onMouseLeave={() => setHoverColor(null)}
         >
-            {options.map((color) =>
+            {options.map((color, index) =>
                 <Paper square
+                    key={index}
                     onClick={() => selectColor(color)}
                     onMouseEnter={() => setHoverColor(color)}
                     style={{

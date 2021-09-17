@@ -9,7 +9,6 @@ import { Paper } from '@material-ui/core';
 function App() {
 
   const initSocket = () => {
-    console.log("initializing socket!");
     return io('http://localhost:3001');
   }
 
@@ -31,20 +30,13 @@ function App() {
     key = key.toLowerCase();
     if (!SETTINGS.controls[key]) { return; }
     let newPressVals = { ...keyPressVals };
-    newPressVals[SETTINGS.controls[key]] = (state == 'down');
-    if (userId !== 0 && !userId) {
-      console.log("No user ID!");
-      console.log(userId);
-    }
+    newPressVals[SETTINGS.controls[key]] = (state === 'down');
     if (socket.current) { 
-      console.log("Accepting controls change.");
       socket.current.emit('controls_change', userId, SETTINGS.controls[key], state); 
     }
   }
 
   useEffect(() => {
-    console.log("User ID set has been finalized as:");
-    console.log(userId);
     const downListener = (e) => handleKey(e.key, 'down', userId);
     const upListener = (e) => handleKey(e.key, 'up', userId);
     document.addEventListener('keydown', downListener);
@@ -61,10 +53,8 @@ function App() {
       setRoomDims(roomDims);
       newSocket.on('avatar_joined', (avatarId) => {
         if (avatarId===id) {
-          console.log("My avatar has joined!");
         }
       });
-      console.log(`ID: ${id}`);
     });
 
     newSocket.on('avatar_moved', (id, name, newX, newY, color) => {
@@ -92,7 +82,6 @@ function App() {
     });
 
     newSocket.on('avatar_left', (id) => {
-      console.log("An avatar left.")
       if (playerData[id]) { delete playerData[id]; }
     });
 

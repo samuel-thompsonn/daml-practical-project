@@ -14,7 +14,8 @@
             "red",
             "green",
             "blue",
-            "magenta"
+            "magenta",
+            "yellow"
         ],
         "colors": {
             "red": {
