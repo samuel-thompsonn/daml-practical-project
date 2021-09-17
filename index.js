@@ -15,6 +15,12 @@ const io = new Server(server, {
 
 const VEHICLE_SPEED = 200; //pixels per second
 const FRAMES_PER_SECOND = 60;
+const BOUNDS = {
+    MIN_X: 0,
+    MAX_X: 400,
+    MIN_Y: 0,
+    MAX_Y: 300
+};
 
 const clientList = [];
 var clientCount = 0;
@@ -27,9 +33,9 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log("A user connected.");
-    clientId = clientCount;
-    newClient = { 
+    const clientId = clientCount;
+    console.log(`A user with id ${clientId} connected.`);
+    const newClient = { 
         id: clientId, 
         name: null,
         socket: socket,
@@ -40,13 +46,34 @@ io.on('connection', (socket) => {
             down: false,
         },
         avatar: null,
+        color: null,
     };
     clientList.push(newClient);
     sendAllLocations(newClient, clientList);
 
-    socket.on('connect_avatar', (name) => {
+    socket.on('connect_avatar', (name, color) => {
         newClient.name = name;
-        newClient.avatar = new ava.Avatar(250, 100);
+        newClient.color = color;
+        newClient.avatar = new ava.Avatar(250, 100, color);
+        for (let otherClient of clientList) {
+            otherClient.socket.emit('avatar_joined', newClient.id);
+        }
+    });
+
+    socket.on('disconnect_avatar', () => {
+        newClient.avatar = null;
+        newClient.color = null;
+        newClient.name = null;
+        newClient.controls_status = { 
+            right: false,
+            left: false,
+            up: false,
+            down: false,
+        };
+        console.log(`${newClient.id}'s avatar has left.`);
+        for (let otherClient of clientList) {
+            otherClient.socket.emit('avatar_left', newClient.id);
+        }
     });
 
     socket.on('controls_change', (id, control, newState) => {
@@ -58,7 +85,10 @@ io.on('connection', (socket) => {
         target_client.controls_status[control] = (newState == 'down');
     });
 
-    socket.emit('accepted_connection', clientId);
+    socket.emit('accepted_connection', clientId, { 
+        roomWidth: BOUNDS.MAX_X - BOUNDS.MIN_X,
+        roomHeight: BOUNDS.MAX_Y - BOUNDS.MIN_Y
+    });
     socket.on('disconnect', () => {
         console.log("A user disconnected.");
         disconnector_idx = clientList.findIndex((client) => client.id === clientId);
@@ -73,23 +103,27 @@ io.on('connection', (socket) => {
 function sendAllLocations(targetClient, allClients) {
     for (let otherClient of allClients) {
         if (!otherClient.avatar) { continue; }
-        targetClient.socket.emit('avatar_moved', otherClient.id, otherClient.name, otherClient.avatar.x, otherClient.avatar.y);
+        targetClient.socket.emit('avatar_moved', otherClient.id, otherClient.name, otherClient.avatar.x, otherClient.avatar.y, otherClient.color);
     }
 }
 
 function gameLoop() {    
     for (let client of clientList) {
         if (client.controls_status.right) {
-            client.avatar.x += VEHICLE_SPEED / FRAMES_PER_SECOND;
+            newX = client.avatar.x + (VEHICLE_SPEED / FRAMES_PER_SECOND);
+            client.avatar.x = Math.min(newX, BOUNDS.MAX_X)
         }
         if (client.controls_status['left']) {
-            client.avatar.x -= VEHICLE_SPEED / FRAMES_PER_SECOND;
+            newX = client.avatar.x - (VEHICLE_SPEED / FRAMES_PER_SECOND);
+            client.avatar.x = Math.max(newX, BOUNDS.MIN_X)
         }
         if (client.controls_status['up']) {
-            client.avatar.y -= VEHICLE_SPEED / FRAMES_PER_SECOND;
+            newY = client.avatar.y - (VEHICLE_SPEED / FRAMES_PER_SECOND);
+            client.avatar.y = Math.max(newY, BOUNDS.MIN_Y);
         }
         if (client.controls_status['down']) {
-            client.avatar.y += VEHICLE_SPEED / FRAMES_PER_SECOND;
+            newY = client.avatar.y + (VEHICLE_SPEED / FRAMES_PER_SECOND);
+            client.avatar.y = Math.min(newY, BOUNDS.MAX_Y);
         }
     }
     for (let client of clientList) {

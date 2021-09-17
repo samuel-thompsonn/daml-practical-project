@@ -5,6 +5,19 @@
   text-align: center;
   width: 100vw;
   height: 100vh;
+  background-color: #222222;
+}
+
+.Interface-container {
+  width: 50%;
+  height: 75%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.Interface-container > * {
+  margin: 10px;
 }
 
 .Name-prompt {
@@ -12,7 +25,6 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  width: 50%;
+  width: 95%;
   height: 20%;
-  background-color: red;
 }

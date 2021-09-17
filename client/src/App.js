@@ -1,9 +1,10 @@
 import './App.css';
+import SETTINGS from './app-settings.json'
 import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 import GameRoom from './components/visualizer/GameRoom';
-import NamePrompt from './components/NamePrompt';
-import { keyMappings } from './controls';
+import ConnectionPrompt from './components/ConnectionPrompt';
+import { Paper } from '@material-ui/core';
 
 function App() {
 
@@ -21,19 +22,23 @@ function App() {
   });
   const [playerData] = useState({ });
   const [userId, setUserId] = useState();
+  const [color, setColor] = useState('red');
+  const [roomDims, setRoomDims] = useState();
+  const [joined, setJoined] = useState(false);
   const socket = useRef(null);
 
   const handleKey = (key, state='down', userId) => {
     key = key.toLowerCase();
-    if (!keyMappings[key]) { return; }
+    if (!SETTINGS.controls[key]) { return; }
     let newPressVals = { ...keyPressVals };
-    newPressVals[keyMappings[key]] = (state == 'down');
-    if (!userId) {
+    newPressVals[SETTINGS.controls[key]] = (state == 'down');
+    if (userId !== 0 && !userId) {
       console.log("No user ID!");
       console.log(userId);
     }
-    if (socket.current && userId) { 
-      socket.current.emit('controls_change', userId, keyMappings[key], state); 
+    if (socket.current) { 
+      console.log("Accepting controls change.");
+      socket.current.emit('controls_change', userId, SETTINGS.controls[key], state); 
     }
   }
 
@@ -51,31 +56,50 @@ function App() {
   }, [userId]);
 
   function initSocketIo(newSocket) {    
-    newSocket.on('accepted_connection', (id) => {
+    newSocket.on('accepted_connection', (id, roomDims) => {
       setUserId(id);
+      setRoomDims(roomDims);
+      newSocket.on('avatar_joined', (avatarId) => {
+        if (avatarId===id) {
+          console.log("My avatar has joined!");
+        }
+      });
       console.log(`ID: ${id}`);
     });
 
-    newSocket.on('avatar_moved', (id, name, newX, newY) => {
+    newSocket.on('avatar_moved', (id, name, newX, newY, color) => {
       if (!playerData[id]) {
         playerData[id] = { 
           location: { },
           oldLocations: [],
+          color: SETTINGS.colorSettings.colors[color],
         };
       }
       else {
         playerData[id].oldLocations.push({...playerData[id].location});
-        if (playerData[id].oldLocations.length > 50) {
+        if (playerData[id].oldLocations.length > SETTINGS.globals.maxTrailRecord) {
           playerData[id].oldLocations.splice(0,1);
         }
       }
       playerData[id].location.x = newX;
       playerData[id].location.y = newY;
       playerData[id].name = name;
+      playerData[id].color = SETTINGS.colorSettings.colors[color];
     });
 
     newSocket.on('client_disconnected', (id) => {
       if (playerData[id]) { delete playerData[id]; }
+    });
+
+    newSocket.on('avatar_left', (id) => {
+      console.log("An avatar left.")
+      if (playerData[id]) { delete playerData[id]; }
+    });
+
+    newSocket.on('avatar_joined', (id) => {
+      if (id === userId) {
+        setJoined(true);
+      }
     });
 
     return () => newSocket.close();
@@ -87,22 +111,53 @@ function App() {
 
   }, []);
 
-  const submitName = () => {
-    socket.current.emit('connect_avatar', name);
+  const submitConnect = () => {
+    socket.current.emit('connect_avatar', name, color);
+    setJoined(true);
+  }
+
+  const submitDisconnect = () => {
+    socket.current.emit('disconnect_avatar');
+    setJoined(false);
   }
 
   return (
-    <div className="App">
+    <div className='App'>
       <p>{userId}</p>
-      <div className='Name-prompt'>
-        <NamePrompt
-          name={name}
-          onNameChange={setName}
-          onSubmit={submitName}
-          disabled={userId && playerData[userId] && true}
-        />
-      </div>
-        <GameRoom gameData={playerData}/>
+      <Paper className='Interface-container' style={{background: '#444444'}}>
+        <Paper className='Name-prompt' style={{background: '#aaaaaa'}}>
+          <ConnectionPrompt
+            name={name}
+            onNameChange={setName}
+            colorOptions={SETTINGS.colorSettings.colorOptions}
+            color={color}
+            onColorChange={(color) => { setColor(color); }}
+            onConnect={submitConnect}
+            onDisconnect={submitDisconnect}
+            connected={joined}
+          />
+        </Paper>
+        <Paper 
+          style={{
+            width: '95%',
+            height: '71%',
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#aaaaaa'
+          }}
+        >
+          {(roomDims)? 
+            <GameRoom 
+              roomDims={roomDims}
+              roomColor={SETTINGS.colorSettings.colors[SETTINGS.colorSettings.roomColor]}
+              gameData={playerData}
+            /> :
+            null
+          }
+        </Paper>
+      </Paper>
     </div>
   );
 }
