@@ -1,0 +1,12 @@
+{
+    "gameSettings": {
+        "avatarSpeed": 200,
+        "bounds": {
+            "minX": 0,
+            "maxX": 400,
+            "minY": 0,
+            "maxY": 300
+        },
+        "framesPerSecond": 60
+    }
+}

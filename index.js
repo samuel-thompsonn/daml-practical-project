@@ -3,6 +3,7 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const ava = require('./server/Avatar')
+const SETTINGS = require('./server/server-settings.json')
 const PORT = 3001;
 const app = express();
 const server = http.createServer(app);
@@ -13,19 +14,32 @@ const io = new Server(server, {
     }
 });
 
-const VEHICLE_SPEED = 200; //pixels per second
-const FRAMES_PER_SECOND = 60;
+const AVATAR_SPEED = SETTINGS.gameSettings.avatarSpeed; //pixels per second
+const FRAMES_PER_SECOND = SETTINGS.gameSettings.framesPerSecond;
 const BOUNDS = {
-    MIN_X: 0,
-    MAX_X: 400,
-    MIN_Y: 0,
-    MAX_Y: 300
+    MIN_X: SETTINGS.gameSettings.bounds.minX,
+    MAX_X: SETTINGS.gameSettings.bounds.maxX,
+    MIN_Y: SETTINGS.gameSettings.bounds.minY,
+    MAX_Y: SETTINGS.gameSettings.bounds.maxY
 };
 
 const clientList = [];
 var clientCount = 0;
 
 app.use(express.static(path.join(__dirname, 'client/build')))
+
+app.get('/api/players', (req, res) => {
+    const returnedList = [];
+    for (let client of clientList) {
+        if (!client.avatar) { continue; }
+        returnedList.push({
+            id: client.id,
+            name: client.name,
+            color: client.color
+        });
+    }
+    res.json(returnedList);
+});
 
 app.get('/', (req, res) => {
     console.log("Received a GET request.");
@@ -110,19 +124,19 @@ function sendAllLocations(targetClient, allClients) {
 function gameLoop() {    
     for (let client of clientList) {
         if (client.controls_status.right) {
-            newX = client.avatar.x + (VEHICLE_SPEED / FRAMES_PER_SECOND);
+            newX = client.avatar.x + (AVATAR_SPEED / FRAMES_PER_SECOND);
             client.avatar.x = Math.min(newX, BOUNDS.MAX_X)
         }
         if (client.controls_status['left']) {
-            newX = client.avatar.x - (VEHICLE_SPEED / FRAMES_PER_SECOND);
+            newX = client.avatar.x - (AVATAR_SPEED / FRAMES_PER_SECOND);
             client.avatar.x = Math.max(newX, BOUNDS.MIN_X)
         }
         if (client.controls_status['up']) {
-            newY = client.avatar.y - (VEHICLE_SPEED / FRAMES_PER_SECOND);
+            newY = client.avatar.y - (AVATAR_SPEED / FRAMES_PER_SECOND);
             client.avatar.y = Math.max(newY, BOUNDS.MIN_Y);
         }
         if (client.controls_status['down']) {
-            newY = client.avatar.y + (VEHICLE_SPEED / FRAMES_PER_SECOND);
+            newY = client.avatar.y + (AVATAR_SPEED / FRAMES_PER_SECOND);
             client.avatar.y = Math.min(newY, BOUNDS.MAX_Y);
         }
     }
